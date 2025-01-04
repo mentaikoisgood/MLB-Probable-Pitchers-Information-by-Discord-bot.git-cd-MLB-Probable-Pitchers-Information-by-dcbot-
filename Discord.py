@@ -112,5 +112,25 @@ async def recent(ctx, team, games=3):
     except Exception as e:
         await ctx.send(f"獲取最近比賽資料時出錯：{str(e)}")
 
-# 在這裡替換為您的機器人 Token
-bot.run(config['token'])
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        # 獲取用戶輸入的錯誤命令
+        wrong_command = ctx.message.content.split()[0][1:]  # 移除前綴 '!'
+        await ctx.send(f"❌ 命令 `{wrong_command}` 不存在\n請使用 `!help` 查看所有可用命令")
+    else:
+        # 處理其他類型的錯誤
+        await ctx.send(f"❌ 發生錯誤：{str(error)}")
+
+try:
+    bot.run(config['token'])
+except discord.errors.LoginFailure:
+    print("錯誤：Discord Bot Token 無效")
+except Exception as e:
+    print(f"錯誤：Bot 無法啟動")
+    print(f"錯誤詳情：{str(e)}")
+    print("請檢查：")
+    print("1. 網路連接是否正常")
+    print("2. Discord Bot Token 是否正確")
+    print("3. Discord API 服務是否正常")
