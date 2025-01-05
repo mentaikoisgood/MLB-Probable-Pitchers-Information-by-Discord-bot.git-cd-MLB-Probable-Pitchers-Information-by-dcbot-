@@ -250,7 +250,7 @@ async def quote(ctx):
 
     except Exception as e:
         await ctx.send(f"❌ 發生錯誤：{str(e)}")
-
+#end of get quote
 try:
     bot.run(config['token'])
 except discord.errors.LoginFailure:
