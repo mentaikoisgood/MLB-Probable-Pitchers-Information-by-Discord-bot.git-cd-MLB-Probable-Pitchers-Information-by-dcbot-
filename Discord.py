@@ -67,7 +67,11 @@ dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
 command_logs = dynamodb.Table('mlb_bot_logs')
 
 # 添加 Lex 客戶端初始化（在文件開頭其他 import 後面）
-lex_client = boto3.client('lex-runtime', region_name='ap-northeast-1')
+lex_client = boto3.client('lex-runtime', 
+    region_name='ap-northeast-1',
+    aws_access_key_id=config.get('aws_access_key_id'),
+    aws_secret_access_key=config.get('aws_secret_access_key')
+)
 
 
 @bot.command(help='獲取MLB投手資訊\n例：!pitcher NYY')
