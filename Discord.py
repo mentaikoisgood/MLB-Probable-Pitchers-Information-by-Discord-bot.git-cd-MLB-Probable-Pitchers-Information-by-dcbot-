@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import Crawling
 import json
+import boto3
+from datetime import datetime
 
 # 讀取配置文件
 with open('config.json') as f:
@@ -59,6 +61,11 @@ async def on_ready():
     print('------')
 
 
+# 初始化 DynamoDB
+dynamodb = boto3.resource('dynamodb')
+command_logs = dynamodb.Table('mlb_bot_logs')
+
+
 @bot.command(help='獲取MLB投手資訊\n例：!pitcher NYY')
 async def pitcher(ctx, team=None):
     """獲取MLB投手資訊"""
@@ -67,6 +74,17 @@ async def pitcher(ctx, team=None):
         return
 
     try:
+        # 記錄命令使用
+        command_logs.put_item(
+            Item={
+                'command_id': str(datetime.now().timestamp()),
+                'command': 'pitcher',
+                'user': str(ctx.author),
+                'guild': str(ctx.guild),
+                'params': team,
+                'timestamp': str(datetime.now())
+            }
+        )
         pitcher_info = Crawling.get_pitcher_info(team)
         await ctx.send(pitcher_info)
     except Exception as e:
