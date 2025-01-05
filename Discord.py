@@ -39,6 +39,7 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
 `!teams` - 顯示所有MLB球隊代號
 `!history NYY 2023-10-01` - 查詢洋基隊在指定日期的比賽
 `!recent NYY 5` - 查詢洋基隊最近5場比賽記錄
+`!quote` - 隨機產生一句棒球名言
 
 **提示：**
 - 球隊可使用簡寫（如 NYY, LAD, BOS）
