@@ -65,6 +65,9 @@ async def on_ready():
 dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
 command_logs = dynamodb.Table('mlb_bot_logs')
 
+# 添加 Lex 客戶端初始化（在文件開頭其他 import 後面）
+lex_client = boto3.client('lex-runtime', region_name='ap-northeast-1')
+
 
 @bot.command(help='獲取MLB投手資訊\n例：!pitcher NYY')
 async def pitcher(ctx, team=None):
@@ -74,6 +77,33 @@ async def pitcher(ctx, team=None):
         return
 
     try:
+        # 發送等待消息
+        loading_msg = await ctx.send("正在查詢投手資訊...")
+
+        try:
+            # 首先嘗試使用 Lex
+            lex_response = lex_client.post_text(
+                botName='MLBBot',
+                botAlias='PROD',
+                userId=str(ctx.author.id),
+                inputText=f"Who is pitching for {team}"
+            )
+            
+            lex_message = lex_response.get('message', '')
+            
+            # 如果 Lex 返回默認消息，使用爬蟲備份
+            if "[Pitcher Name]" in lex_message:
+                pitcher_info = Crawling.get_pitcher_info(team)
+                await loading_msg.edit(content=pitcher_info)
+            else:
+                await loading_msg.edit(content=lex_message)
+
+        except Exception as lex_error:
+            # Lex 失敗時使用爬蟲備份
+            print(f"Lex 錯誤: {str(lex_error)}")
+            pitcher_info = Crawling.get_pitcher_info(team)
+            await loading_msg.edit(content=pitcher_info)
+
         # 記錄命令使用
         command_logs.put_item(
             Item={
@@ -82,13 +112,16 @@ async def pitcher(ctx, team=None):
                 'user': str(ctx.author),
                 'guild': str(ctx.guild),
                 'params': team,
+                'lex_used': True,
                 'timestamp': str(datetime.now())
             }
         )
-        pitcher_info = Crawling.get_pitcher_info(team)
-        await ctx.send(pitcher_info)
     except Exception as e:
-        await ctx.send(f"獲取投手資訊時出錯：{str(e)}")
+        error_message = f"獲取投手資訊時出錯：{str(e)}"
+        if 'loading_msg' in locals():
+            await loading_msg.edit(content=error_message)
+        else:
+            await ctx.send(error_message)
 
 
 @bot.command(help='獲取今日比賽賽程\n例：!schedule')

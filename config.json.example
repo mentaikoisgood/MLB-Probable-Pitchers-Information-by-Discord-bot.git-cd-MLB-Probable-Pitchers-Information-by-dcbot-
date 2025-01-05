@@ -1,3 +1,6 @@
 {
-    "token": "your-token-here"
+    "token": "your-discord-token-here",
+    "aws_access_key_id": "your-aws-access-key",
+    "aws_secret_access_key": "your-aws-secret-key",
+    "aws_region": "ap-northeast-1"
 }
