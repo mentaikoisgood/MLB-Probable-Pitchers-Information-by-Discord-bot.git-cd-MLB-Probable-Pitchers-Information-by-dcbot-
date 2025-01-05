@@ -139,10 +139,15 @@ async def on_command(ctx):
                 'command_id': str(datetime.now().timestamp()),
                 'command': ctx.command.name,
                 'user': str(ctx.author),
+                'user_id': str(ctx.author.id),
                 'guild': str(ctx.guild),
+                'guild_id': str(ctx.guild.id),
                 'channel': str(ctx.channel),
+                'channel_id': str(ctx.channel.id),
                 'content': ctx.message.content,
-                'timestamp': str(datetime.now())
+                'timestamp': str(datetime.now()),
+                'success': True,
+                'response_time': ctx.message.created_at.timestamp()
             }
         )
     except Exception as e:
@@ -162,16 +167,36 @@ async def on_command_error(ctx, error):
     try:
         command_logs.put_item(
             Item={
-                'command_id': str(datetime.now().timestamp()),
+                'command_id': f"error_{str(datetime.now().timestamp())}",
+                'type': 'error',
                 'command': ctx.command.name if ctx.command else 'unknown',
                 'user': str(ctx.author),
                 'guild': str(ctx.guild),
-                'error': str(error),
+                'error_type': type(error).__name__,
+                'error_message': str(error),
                 'timestamp': str(datetime.now())
             }
         )
     except Exception as e:
         print(f"錯誤日誌記錄失敗: {str(e)}")
+
+
+def get_command_stats():
+    response = command_logs.scan()
+    stats = {
+        'total_commands': 0,
+        'commands_by_type': {},
+        'active_users': set(),
+        'active_guilds': set()
+    }
+    
+    for item in response['Items']:
+        stats['total_commands'] += 1
+        stats['commands_by_type'][item['command']] = stats['commands_by_type'].get(item['command'], 0) + 1
+        stats['active_users'].add(item['user'])
+        stats['active_guilds'].add(item['guild'])
+    
+    return stats
 
 try:
     bot.run(config['token'])
