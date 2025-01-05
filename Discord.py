@@ -266,28 +266,30 @@ async def on_message(message):
     await bot.process_commands(message)
 
 #get quote function
+# ✅ 修正版: 適用於 Lambda 回傳純文字
 @bot.command(help="隨機獲取一條棒球名言")
 async def quote(ctx):
     """使用 API Gateway 觸發 Lambda 並獲取棒球名言"""
     try:
-        # ✅ 使用剛剛找到的 API Gateway URL
+        # ✅ 正確的 API Gateway URL
         api_url = "https://9fy9znkf2m.execute-api.ap-northeast-1.amazonaws.com"
 
         # ✅ 發送 GET 請求到 API Gateway
         response = requests.get(api_url)
-        
-        # ✅ 如果回應成功，解析回傳的 JSON
-        if response.status_code == 200:
-            data = response.json()
-            # 確保正確解析 Lambda 回傳的資料格式
-            quote = data.get('body', {}).get('quote', "❌ 無法解析名言")
-            await ctx.send(f"🎯 **棒球名言** 🎯\n{quote}")
-        else:
-            await ctx.send(f"❌ API 呼叫失敗，狀態碼: {response.status_code}")
+        response.raise_for_status()  # 自動捕捉 HTTP 錯誤
 
+        # ✅ 直接使用純文字解析 (適用於 Lambda 回傳純文字)
+        quote = response.text
+        await ctx.send(f"🎯 **棒球名言** 🎯\n{quote}")
+
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"❌ 網路錯誤：{e}")
     except Exception as e:
-        await ctx.send(f"❌ 發生錯誤：{str(e)}")
+        await ctx.send(f"❌ 發生未預期的錯誤：{str(e)}")
+
 #end of get quote
+
+
 try:
     bot.run(config['token'])
 except discord.errors.LoginFailure:
