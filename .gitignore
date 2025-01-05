@@ -1,4 +1,16 @@
-config.json
+# 密鑰文件
+*.pem
+*.ppk
+public_key.txt
+public_key.txt.bak
+
+# 環境變量
+.env
+
+# 腳本
+startup.sh
+
+# 其他
 __pycache__/
-*.pyc"*.pem" 
-"*.pem" 
+*.pyc
+config.json
