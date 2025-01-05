@@ -62,7 +62,7 @@ async def on_ready():
 
 
 # 初始化 DynamoDB
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
 command_logs = dynamodb.Table('mlb_bot_logs')
 
 
@@ -132,6 +132,24 @@ async def recent(ctx, team, games=3):
 
 
 @bot.event
+async def on_command(ctx):
+    try:
+        command_logs.put_item(
+            Item={
+                'command_id': str(datetime.now().timestamp()),
+                'command': ctx.command.name,
+                'user': str(ctx.author),
+                'guild': str(ctx.guild),
+                'channel': str(ctx.channel),
+                'content': ctx.message.content,
+                'timestamp': str(datetime.now())
+            }
+        )
+    except Exception as e:
+        print(f"日誌記錄錯誤: {str(e)}")
+
+
+@bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         # 獲取用戶輸入的錯誤命令
@@ -140,6 +158,20 @@ async def on_command_error(ctx, error):
     else:
         # 處理其他類型的錯誤
         await ctx.send(f"❌ 發生錯誤：{str(error)}")
+
+    try:
+        command_logs.put_item(
+            Item={
+                'command_id': str(datetime.now().timestamp()),
+                'command': ctx.command.name if ctx.command else 'unknown',
+                'user': str(ctx.author),
+                'guild': str(ctx.guild),
+                'error': str(error),
+                'timestamp': str(datetime.now())
+            }
+        )
+    except Exception as e:
+        print(f"錯誤日誌記錄失敗: {str(e)}")
 
 try:
     bot.run(config['token'])
