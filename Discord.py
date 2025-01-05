@@ -271,7 +271,7 @@ async def quote(ctx):
     """使用 API Gateway 觸發 Lambda 並獲取棒球名言"""
     try:
         # ✅ 使用剛剛找到的 API Gateway URL
-        api_url = "https://mh0bkfnge4.execute-api.ap-northeast-1.amazonaws.com/"
+        api_url = "https://9fy9znkf2m.execute-api.ap-northeast-1.amazonaws.com"
 
         # ✅ 發送 GET 請求到 API Gateway
         response = requests.get(api_url)
