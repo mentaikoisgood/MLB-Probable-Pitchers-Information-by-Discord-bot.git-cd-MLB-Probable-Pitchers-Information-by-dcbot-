@@ -20,6 +20,8 @@
 - `!teams` - 顯示所有 MLB 球隊代號
 - `!history NYY 2023-10-01` - 查詢洋基隊在指定日期的比賽
 - `!recent NYY 5` - 查詢洋基隊最近 5 場比賽記錄
+- `!hstat Freddie Freeman` - 查詢Freddie Freeman今年數據
+- `!pstat Yoshinobu Yamamoto` - 查詢Yoshinobu Yamamoto今年數據
 
 ## 安裝步驟
 
