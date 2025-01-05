@@ -3,9 +3,12 @@
 *.ppk
 public_key.txt
 public_key.txt.bak
+token.txt
 
 # 環境變量
 .env
+config.json
+*.bak
 
 # 腳本
 startup.sh
@@ -13,4 +16,4 @@ startup.sh
 # 其他
 __pycache__/
 *.pyc
-config.json
+.DS_Store

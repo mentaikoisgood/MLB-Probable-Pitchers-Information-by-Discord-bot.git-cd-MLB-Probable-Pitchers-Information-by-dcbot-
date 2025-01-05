@@ -4,6 +4,7 @@ import Crawling
 import json
 import boto3
 from datetime import datetime
+import requests
 
 # 讀取配置文件
 with open('config.json') as f:
@@ -38,6 +39,7 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
 `!teams` - 顯示所有MLB球隊代號
 `!history NYY 2023-10-01` - 查詢洋基隊在指定日期的比賽
 `!recent NYY 5` - 查詢洋基隊最近5場比賽記錄
+`!quote` - 隨機產生一句棒球名言
 
 **提示：**
 - 球隊可使用簡寫（如 NYY, LAD, BOS）
@@ -65,6 +67,13 @@ async def on_ready():
 dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
 command_logs = dynamodb.Table('mlb_bot_logs')
 
+# 添加 Lex 客戶端初始化（在文件開頭其他 import 後面）
+lex_client = boto3.client('lex-runtime', 
+    region_name='ap-northeast-1',
+    aws_access_key_id=config.get('aws_access_key_id'),
+    aws_secret_access_key=config.get('aws_secret_access_key')
+)
+
 
 @bot.command(help='獲取MLB投手資訊\n例：!pitcher NYY')
 async def pitcher(ctx, team=None):
@@ -74,6 +83,33 @@ async def pitcher(ctx, team=None):
         return
 
     try:
+        # 發送等待消息
+        loading_msg = await ctx.send("正在查詢投手資訊...")
+
+        try:
+            # 首先嘗試使用 Lex
+            lex_response = lex_client.post_text(
+                botName='MLBBot',
+                botAlias='PROD',
+                userId=str(ctx.author.id),
+                inputText=f"Who is pitching for {team}"
+            )
+            
+            lex_message = lex_response.get('message', '')
+            
+            # 如果 Lex 返回默認消息，使用爬蟲備份
+            if "[Pitcher Name]" in lex_message:
+                pitcher_info = Crawling.get_pitcher_info(team)
+                await loading_msg.edit(content=pitcher_info)
+            else:
+                await loading_msg.edit(content=lex_message)
+
+        except Exception as lex_error:
+            # Lex 失敗時使用爬蟲備份
+            print(f"Lex 錯誤: {str(lex_error)}")
+            pitcher_info = Crawling.get_pitcher_info(team)
+            await loading_msg.edit(content=pitcher_info)
+
         # 記錄命令使用
         command_logs.put_item(
             Item={
@@ -82,13 +118,16 @@ async def pitcher(ctx, team=None):
                 'user': str(ctx.author),
                 'guild': str(ctx.guild),
                 'params': team,
+                'lex_used': True,
                 'timestamp': str(datetime.now())
             }
         )
-        pitcher_info = Crawling.get_pitcher_info(team)
-        await ctx.send(pitcher_info)
     except Exception as e:
-        await ctx.send(f"獲取投手資訊時出錯：{str(e)}")
+        error_message = f"獲取投手資訊時出錯：{str(e)}"
+        if 'loading_msg' in locals():
+            await loading_msg.edit(content=error_message)
+        else:
+            await ctx.send(error_message)
 
 
 @bot.command(help='獲取今日比賽賽程\n例：!schedule')
@@ -155,7 +194,6 @@ async def recent(ctx, team, games=3):
 @bot.event
 async def on_command(ctx):
     try:
-        # 更詳細的日誌記錄
         command_logs.put_item(
             Item={
                 'command_id': str(datetime.now().timestamp()),
@@ -167,10 +205,11 @@ async def on_command(ctx):
                 'channel': str(ctx.channel),
                 'channel_id': str(ctx.channel.id),
                 'content': ctx.message.content,
-                'timestamp': str(datetime.now())
+                'timestamp': str(datetime.now()),
+                'success': True,
+                'response_time': ctx.message.created_at.timestamp()
             }
         )
-        print(f"命令已記錄: {ctx.command.name} by {ctx.author} in {ctx.guild}")
     except Exception as e:
         print(f"日誌記錄錯誤: {str(e)}")
 
@@ -247,6 +286,31 @@ async def on_message(message):
             print(f"日誌記錄錯誤: {str(e)}")
     
     await bot.process_commands(message)
+
+#get quote function
+# ✅ 修正版: 適用於 Lambda 回傳純文字
+@bot.command(help="隨機獲取一條棒球名言")
+async def quote(ctx):
+    """使用 API Gateway 觸發 Lambda 並獲取棒球名言"""
+    try:
+        # ✅ 正確的 API Gateway URL
+        api_url = "https://9fy9znkf2m.execute-api.ap-northeast-1.amazonaws.com"
+
+        # ✅ 發送 GET 請求到 API Gateway
+        response = requests.get(api_url)
+        response.raise_for_status()  # 自動捕捉 HTTP 錯誤
+
+        # ✅ 直接使用純文字解析 (適用於 Lambda 回傳純文字)
+        quote = response.text
+        await ctx.send(f"🎯 **棒球名言** 🎯\n{quote}")
+
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"❌ 網路錯誤：{e}")
+    except Exception as e:
+        await ctx.send(f"❌ 發生未預期的錯誤：{str(e)}")
+
+#end of get quote
+
 
 try:
     bot.run(config['token'])

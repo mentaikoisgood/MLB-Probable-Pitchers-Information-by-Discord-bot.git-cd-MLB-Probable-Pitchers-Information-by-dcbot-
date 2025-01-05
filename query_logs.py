@@ -29,6 +29,15 @@ def print_logs(items):
         print(f"完整命令: {item.get('content', 'N/A')}")
         print("-" * 50)
 
+def get_team_from_command(content):
+    """從命令內容中提取球隊名稱"""
+    if not content:
+        return None
+    parts = content.split()
+    if len(parts) > 1 and parts[0] in ['!pitcher', '!schedule']:
+        return parts[1].upper()
+    return None
+
 def print_detailed_stats(items):
     stats = {
         'total_commands': 0,
@@ -38,7 +47,8 @@ def print_detailed_stats(items):
         'hourly_usage': Counter(),
         'channel_usage': Counter(),
         'active_users': Counter(),
-        'active_guilds': Counter()
+        'active_guilds': Counter(),
+        'team_queries': Counter()  # 新增：球隊查詢統計
     }
     
     for item in items:
@@ -76,6 +86,12 @@ def print_detailed_stats(items):
         if command not in stats['guilds_by_command']:
             stats['guilds_by_command'][command] = Counter()
         stats['guilds_by_command'][command][guild] += 1
+        
+        # 添加球隊統計
+        content = item.get('content')
+        team = get_team_from_command(content)
+        if team:
+            stats['team_queries'][team] += 1
 
     # 輸出統計結果
     print("\n=== 詳細統計資料 ===")
@@ -101,6 +117,108 @@ def print_detailed_stats(items):
     hours = range(24)
     hour_table = [[f"{hour:02d}:00", stats['hourly_usage'][hour]] for hour in hours]
     print(tabulate(hour_table, headers=['時段', '次數'], tablefmt='grid'))
+    
+    # 添加球隊統計輸出
+    if stats['team_queries']:
+        print("\n最常查詢的球隊:")
+        team_table = [[team, count] for team, count in stats['team_queries'].most_common()]
+        print(tabulate(team_table, headers=['球隊', '查詢次數'], tablefmt='grid'))
+        
+        # 計算每個用戶最常查詢的球隊
+        user_team_prefs = {}
+        for item in items:
+            user = item['user']
+            team = get_team_from_command(item.get('content'))
+            if team:
+                if user not in user_team_prefs:
+                    user_team_prefs[user] = Counter()
+                user_team_prefs[user][team] += 1
+        
+        print("\n用戶最愛查詢的球隊:")
+        user_team_table = []
+        for user, team_counts in user_team_prefs.items():
+            if team_counts:
+                favorite_team, count = team_counts.most_common(1)[0]
+                user_team_table.append([user, favorite_team, count])
+        print(tabulate(user_team_table, headers=['用戶', '最愛球隊', '查詢次數'], tablefmt='grid'))
+
+    return stats
+
+def save_stats_to_file(stats, items):
+    """將統計結果保存到文件"""
+    current_time = datetime.now(tw_tz).strftime('%Y%m%d_%H%M%S')
+    filename = f'bot_stats_{current_time}.txt'
+    
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write("=== MLB Bot 使用統計報告 ===\n")
+        f.write(f"生成時間: {datetime.now(tw_tz).strftime('%Y-%m-%d %H:%M:%S')} (台灣時間)\n\n")
+        
+        # 基本統計
+        f.write(f"總命令使用次數: {stats['total_commands']}\n\n")
+        
+        # 命令使用排行
+        f.write("命令使用排行:\n")
+        command_table = [[cmd, count] for cmd, count in stats['commands_by_type'].most_common()]
+        f.write(tabulate(command_table, headers=['命令', '次數'], tablefmt='grid'))
+        f.write("\n\n")
+        
+        # 最活躍用戶
+        f.write("最活躍用戶:\n")
+        user_table = [[user, count] for user, count in stats['active_users'].most_common(5)]
+        f.write(tabulate(user_table, headers=['用戶', '命令次數'], tablefmt='grid'))
+        f.write("\n\n")
+        
+        # 頻道使用統計
+        f.write("頻道使用統計:\n")
+        channel_table = [[channel, count] for channel, count in stats['channel_usage'].most_common()]
+        f.write(tabulate(channel_table, headers=['頻道', '次數'], tablefmt='grid'))
+        f.write("\n\n")
+        
+        # 每小時使用統計
+        f.write("每小時使用統計 (台灣時間):\n")
+        hours = range(24)
+        hour_table = [[f"{hour:02d}:00", stats['hourly_usage'][hour]] for hour in hours]
+        f.write(tabulate(hour_table, headers=['時段', '次數'], tablefmt='grid'))
+        f.write("\n\n")
+        
+        # 球隊統計
+        if stats['team_queries']:
+            f.write("最常查詢的球隊:\n")
+            team_table = [[team, count] for team, count in stats['team_queries'].most_common()]
+            f.write(tabulate(team_table, headers=['球隊', '查詢次數'], tablefmt='grid'))
+            f.write("\n\n")
+            
+            # 用戶最愛球隊
+            user_team_prefs = {}
+            for item in items:
+                user = item['user']
+                team = get_team_from_command(item.get('content'))
+                if team:
+                    if user not in user_team_prefs:
+                        user_team_prefs[user] = Counter()
+                    user_team_prefs[user][team] += 1
+            
+            f.write("用戶最愛查詢的球隊:\n")
+            user_team_table = []
+            for user, team_counts in user_team_prefs.items():
+                if team_counts:
+                    favorite_team, count = team_counts.most_common(1)[0]
+                    user_team_table.append([user, favorite_team, count])
+            f.write(tabulate(user_team_table, headers=['用戶', '最愛球隊', '查詢次數'], tablefmt='grid'))
+            f.write("\n\n")
+        
+        # 最近的命令記錄
+        f.write("=== 最近的命令記錄 ===\n")
+        for item in sorted(items, key=lambda x: x['timestamp'], reverse=True):
+            f.write(f"\n時間: {convert_to_tw_time(item['timestamp'])} (台灣時間)\n")
+            f.write(f"命令: {item['command']}\n")
+            f.write(f"用戶: {item['user']}\n")
+            f.write(f"伺服器: {item['guild']}\n")
+            f.write(f"頻道: {item.get('channel', 'N/A')}\n")
+            f.write(f"完整命令: {item.get('content', 'N/A')}\n")
+            f.write("-" * 50 + "\n")
+    
+    print(f"\n統計報告已保存到文件: {filename}")
 
 # 獲取最近24小時的日誌
 now = datetime.now(tw_tz)
@@ -116,4 +234,5 @@ response = table.scan(
 
 print("=== 最近的命令記錄 ===")
 print_logs(response['Items'])
-print_detailed_stats(response['Items'])
+stats = print_detailed_stats(response['Items'])
+save_stats_to_file(stats, response['Items'])
