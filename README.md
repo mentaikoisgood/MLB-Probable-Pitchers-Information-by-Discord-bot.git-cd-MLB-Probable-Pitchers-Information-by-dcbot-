@@ -1,63 +1,51 @@
-# MLB Probable Pitchers Information Discord Bot
+# MLB Discord Bot
 
-這是一個 Discord bot，可以查詢 MLB 的投手資訊和賽程。
+這是一個用於查詢 MLB（美國職棒大聯盟）資訊的 Discord 機器人。
 
 ## 功能
 
-- `!help` - 顯示所有可用命令
-- `!teams` - 顯示所有球隊代號
-- `!pitcher [team]` - 查詢指定球隊的投手資訊
-- `!schedule [team]` - 查詢指定球隊的賽程
-- `!quote` - 抽取一句名言
+- **查詢投手資訊**
+- **查看今日比賽賽程**
+- **顯示所有 MLB 球隊列表**
+- **查詢指定日期的比賽歷史**
+- **查看球隊最近的比賽記錄**
 
-## 新增功能
+## 指令列表
 
-- DynamoDB 數據記錄
-- 使用統計分析
-  - 命令使用次數統計
-  - 用戶活躍度分析
-  - 球隊查詢統計
-  - 每小時使用統計
-- 統計報告生成（自動保存為文件）
-- DynamoDB 存取名言
-- Lambda 函式自動抓去DB內value
+所有指令都使用 `!` 作為前綴：
 
-## 安裝需求
+- `!pitcher NYY` - 查詢洋基隊投手資訊
+- `!pitcher LAD` - 查詢道奇隊投手資訊
+- `!schedule` - 顯示今日所有比賽
+- `!teams` - 顯示所有 MLB 球隊代號
+- `!history NYY 2023-10-01` - 查詢洋基隊在指定日期的比賽
+- `!recent NYY 5` - 查詢洋基隊最近 5 場比賽記錄
+- `!hstat Freddie Freeman` - 查詢Freddie Freeman今年數據
+- `!pstat Yoshinobu Yamamoto` - 查詢Yoshinobu Yamamoto今年數據
 
-1. Python 3.8 或更高版本
-2. 安裝依賴：
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 安裝步驟
 
-## 環境設置
+1. **克隆專案**：
+    ```bash
+    git clone https://github.com/mentaikoisgood/MLB-Probable-Pitchers-Information-by-Discord-bot.git
+    ```
 
-1. Discord Bot Token
-2. AWS 憑證（用於 DynamoDB）
-   - AWS_ACCESS_KEY_ID
-   - AWS_SECRET_ACCESS_KEY
-   - AWS_DEFAULT_REGION
+2. **安裝依賴**：
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-## 使用方法
+3. **設置配置文件**：
+    - 複製 `config.json.example` 為 `config.json`
+    - 在 `config.json` 中填入您的 Discord Bot Token
 
-1. 克隆倉庫
-2. 安裝依賴
-3. 設置環境變量
-4. 運行 bot：
-   ```bash
-   python Discord.py
-   ```
+4. **運行機器人**：
+    ```bash
+    python Discord.py
+    ```
 
-## 統計分析
+## 注意事項
 
-使用 `query_logs.py` 查看使用統計：
-```bash
-python query_logs.py
-```
-
-統計報告會自動保存為文件，包含：
-- 命令使用排行
-- 最活躍用戶
-- 最常查詢的球隊
-- 每小時使用統計
-- 詳細的命令記錄
+- 球隊可使用簡寫（如 `NYY`, `LAD`, `BOS`）
+- 日期格式為 `YYYY-MM-DD`
+- `recent` 命令預設顯示最近 3 場比賽

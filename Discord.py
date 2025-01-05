@@ -159,6 +159,27 @@ async def history(ctx, team, date=None):
     except Exception as e:
         await ctx.send(f"獲取歷史資料時出錯：{str(e)}")
 
+@bot.command(help='查詢指定打者今年數據\n例：!hstat Freddie Freeman')
+async def hstat(ctx, *player):
+    """查詢指定打者今年數據"""
+    try:
+        # 將所有參數合併為一個完整的人名
+        player_name = " ".join(player)
+        hitter_info = Crawling.get_hitter_stat(player_name)
+        await ctx.send(hitter_info)
+    except Exception as e:
+        await ctx.send(f"獲取指定打者時出錯：{str(e)}")
+
+@bot.command(help='查詢指定投手今年數據\n例：!pstat Yoshinobu Yamamoto')
+async def pstat(ctx, *player):
+    """查詢指定投手今年數據"""
+    try:
+        # 將所有參數合併為一個完整的人名
+        player_name = " ".join(player)
+        pitcher_info = Crawling.get_pitcher_stat(player_name)
+        await ctx.send(pitcher_info)
+    except Exception as e:
+        await ctx.send(f"獲取指定投手時出錯：{str(e)}")
 
 @bot.command(help='查詢球隊最近的比賽數據\n例：!recent NYY 5\n數字表示要查詢的最近幾場比賽（預設為3場）')
 async def recent(ctx, team, games=3):
