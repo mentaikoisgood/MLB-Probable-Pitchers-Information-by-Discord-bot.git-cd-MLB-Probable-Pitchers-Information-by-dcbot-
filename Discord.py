@@ -168,7 +168,6 @@ async def recent(ctx, team, games=3):
 @bot.event
 async def on_command(ctx):
     try:
-        # 更詳細的日誌記錄
         command_logs.put_item(
             Item={
                 'command_id': str(datetime.now().timestamp()),
@@ -180,10 +179,11 @@ async def on_command(ctx):
                 'channel': str(ctx.channel),
                 'channel_id': str(ctx.channel.id),
                 'content': ctx.message.content,
-                'timestamp': str(datetime.now())
+                'timestamp': str(datetime.now()),
+                'success': True,
+                'response_time': ctx.message.created_at.timestamp()
             }
         )
-        print(f"命令已記錄: {ctx.command.name} by {ctx.author} in {ctx.guild}")
     except Exception as e:
         print(f"日誌記錄錯誤: {str(e)}")
 
