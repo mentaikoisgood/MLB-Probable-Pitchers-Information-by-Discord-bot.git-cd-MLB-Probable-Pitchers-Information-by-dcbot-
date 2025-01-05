@@ -44,6 +44,7 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
 """
         await self.get_destination().send(help_text)
 
+
 # 使用自定義幫助命令
 bot = commands.Bot(
     command_prefix='!',
@@ -117,28 +118,26 @@ async def recent(ctx, team, games=3):
         await ctx.send(f"❌ 獲取最近比賽資料時出錯：{str(e)}")
 
 
-# ✅ 修改版的 !quote 指令 (修正 API Gateway URL 與 JSON 解析)
+# ✅ ✅ ✅ 更新版 !quote 指令 (僅修改 API Gateway URL) ✅ ✅ ✅
 @bot.command(help="隨機獲取一條棒球名言")
 async def quote(ctx):
     """使用 API Gateway 觸發 Lambda 並獲取棒球名言"""
     try:
-        # ✅ 使用正確的 API Gateway URL
+        # ✅ 更新的 API Gateway URL
         api_url = "https://9fy9znkf2m.execute-api.ap-northeast-1.amazonaws.com/"
 
         # ✅ 發送 GET 請求到 API Gateway
-        response = requests.get(api_url, timeout=10)
-        response.raise_for_status()
+        response = requests.get(api_url)
+        
+        # ✅ 如果回應成功，直接解析純文字回應
+        if response.status_code == 200:
+            quote = response.text
+            await ctx.send(f"🎯 **棒球名言** 🎯\n{quote}")
+        else:
+            await ctx.send(f"❌ API 呼叫失敗，狀態碼: {response.status_code}")
 
-        # ✅ 直接回傳純文字，無需 JSON 解析
-        quote = response.text
-
-        # ✅ 發送到 Discord 頻道
-        await ctx.send(f"🎯 **棒球名言** 🎯\n{quote}")
-
-    except requests.exceptions.RequestException as e:
-        await ctx.send(f"❌ 網路錯誤：{e}")
     except Exception as e:
-        await ctx.send(f"❌ 發生未預期的錯誤：{str(e)}")
+        await ctx.send(f"❌ 發生錯誤：{str(e)}")
 
 
 @bot.event
