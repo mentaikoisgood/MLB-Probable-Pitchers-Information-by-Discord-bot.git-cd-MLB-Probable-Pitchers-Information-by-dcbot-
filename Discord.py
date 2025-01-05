@@ -134,6 +134,7 @@ async def recent(ctx, team, games=3):
 @bot.event
 async def on_command(ctx):
     try:
+        # 更詳細的日誌記錄
         command_logs.put_item(
             Item={
                 'command_id': str(datetime.now().timestamp()),
@@ -145,11 +146,10 @@ async def on_command(ctx):
                 'channel': str(ctx.channel),
                 'channel_id': str(ctx.channel.id),
                 'content': ctx.message.content,
-                'timestamp': str(datetime.now()),
-                'success': True,
-                'response_time': ctx.message.created_at.timestamp()
+                'timestamp': str(datetime.now())
             }
         )
+        print(f"命令已記錄: {ctx.command.name} by {ctx.author} in {ctx.guild}")
     except Exception as e:
         print(f"日誌記錄錯誤: {str(e)}")
 
@@ -197,6 +197,35 @@ def get_command_stats():
         stats['active_guilds'].add(item['guild'])
     
     return stats
+
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    
+    if message.content.startswith('!'):
+        try:
+            # 記錄所有以 ! 開頭的消息
+            command_logs.put_item(
+                Item={
+                    'command_id': str(datetime.now().timestamp()),
+                    'command': message.content.split()[0][1:],  # 移除 ! 並獲取命令名
+                    'user': str(message.author),
+                    'user_id': str(message.author.id),
+                    'guild': str(message.guild),
+                    'guild_id': str(message.guild.id),
+                    'channel': str(message.channel),
+                    'channel_id': str(message.channel.id),
+                    'content': message.content,
+                    'timestamp': str(datetime.now())
+                }
+            )
+            print(f"消息已記錄: {message.content} by {message.author} in {message.guild}")
+        except Exception as e:
+            print(f"日誌記錄錯誤: {str(e)}")
+    
+    await bot.process_commands(message)
 
 try:
     bot.run(config['token'])
