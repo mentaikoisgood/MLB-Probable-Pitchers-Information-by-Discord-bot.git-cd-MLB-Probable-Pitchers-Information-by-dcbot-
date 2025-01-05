@@ -1,14 +1,27 @@
 import boto3
 from datetime import datetime, timedelta
 from collections import Counter
-from tabulate import tabulate  # 需要先安裝: pip install tabulate
+from tabulate import tabulate
+import pytz  # 需要安裝: pip3 install pytz
+
+# 設置台灣時區
+tw_tz = pytz.timezone('Asia/Taipei')
 
 dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
 table = dynamodb.Table('mlb_bot_logs')
 
+def convert_to_tw_time(timestamp_str):
+    # 將字符串轉換為 datetime 對象
+    dt = datetime.strptime(timestamp_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+    # 設置為 UTC 時間
+    dt = pytz.utc.localize(dt)
+    # 轉換為台灣時間
+    tw_time = dt.astimezone(tw_tz)
+    return tw_time.strftime('%Y-%m-%d %H:%M:%S')
+
 def print_logs(items):
     for item in sorted(items, key=lambda x: x['timestamp'], reverse=True):
-        print(f"\n時間: {item['timestamp']}")
+        print(f"\n時間: {convert_to_tw_time(item['timestamp'])} (台灣時間)")
         print(f"命令: {item['command']}")
         print(f"用戶: {item['user']}")
         print(f"伺服器: {item['guild']}")
@@ -29,6 +42,9 @@ def print_detailed_stats(items):
     }
     
     for item in items:
+        # 轉換為台灣時間
+        tw_time = datetime.strptime(convert_to_tw_time(item['timestamp']), '%Y-%m-%d %H:%M:%S')
+        
         # 基本計數
         stats['total_commands'] += 1
         command = item['command']
@@ -48,9 +64,8 @@ def print_detailed_stats(items):
         # 頻道使用統計
         stats['channel_usage'][channel] += 1
         
-        # 每小時使用統計
-        hour = datetime.strptime(item['timestamp'].split('.')[0], '%Y-%m-%d %H:%M:%S').hour
-        stats['hourly_usage'][hour] += 1
+        # 每小時使用統計 (使用台灣時間)
+        stats['hourly_usage'][tw_time.hour] += 1
         
         # 用戶命令偏好
         if command not in stats['users_by_command']:
@@ -82,19 +97,20 @@ def print_detailed_stats(items):
     channel_table = [[channel, count] for channel, count in stats['channel_usage'].most_common()]
     print(tabulate(channel_table, headers=['頻道', '次數'], tablefmt='grid'))
     
-    print("\n每小時使用統計:")
+    print("\n每小時使用統計 (台灣時間):")
     hours = range(24)
     hour_table = [[f"{hour:02d}:00", stats['hourly_usage'][hour]] for hour in hours]
     print(tabulate(hour_table, headers=['時段', '次數'], tablefmt='grid'))
 
 # 獲取最近24小時的日誌
+now = datetime.now(tw_tz)
 response = table.scan(
     FilterExpression='#ts >= :start_time',
     ExpressionAttributeNames={
         '#ts': 'timestamp'
     },
     ExpressionAttributeValues={
-        ':start_time': str(datetime.now() - timedelta(hours=24))
+        ':start_time': str(now - timedelta(hours=24))
     }
 )
 
