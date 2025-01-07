@@ -40,6 +40,8 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
 `!history NYY 2023-10-01` - 查詢洋基隊在指定日期的比賽
 `!recent NYY 5` - 查詢洋基隊最近5場比賽記錄
 `!quote` - 隨機產生一句棒球名言
+`!hstat Freddie Freeman` - 查詢Freddie Freeman今年數據
+`!pstat Yoshinobu Yamamoto` - 查詢Yoshinobu Yamamoto今年數據
 
 **提示：**
 - 球隊可使用簡寫（如 NYY, LAD, BOS）
