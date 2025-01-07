@@ -22,6 +22,7 @@
 - `!recent NYY 5` - 查詢洋基隊最近 5 場比賽記錄
 - `!hstat Freddie Freeman` - 查詢Freddie Freeman今年數據
 - `!pstat Yoshinobu Yamamoto` - 查詢Yoshinobu Yamamoto今年數據
+- `!quote` - 隨機抽取一句棒球名言
 
 ## 安裝步驟
 
